@@ -1,33 +1,36 @@
 import http from 'http';
 import axios from 'axios';
-import https from 'https'; // Import the https module
+import https from 'https';
 
 const backendServer = 'https://jsonplaceholder.typicode.com';
 
 const httpServer = http.createServer(async (req, res) => {
     try {
-     
         console.log(`Method: ${req.method}`);
         console.log(`URL: ${req.url}`);
         console.log('Headers:', req.headers);
 
-    
+        const forwardHeaders = {
+            'content-type': req.headers['content-type'],
+            'accept': req.headers['accept'],
+            'user-agent': 'proxy-server'
+        };
+
         const response = await axios({
             method: req.method,
             url: `${backendServer}${req.url}`,
-            headers: req.headers,
+            headers: forwardHeaders,  
             httpsAgent: new https.Agent({ rejectUnauthorized: false }), 
         });
 
-        const headers : {[key:string] : string | string[]} = {}
+        const headers: {[key:string] : string | string[]} = {};
         for(const key in response.headers) {
-            if(response.headers.hasOwnProperty(key)) {
-                headers[key] = response.headers[key]
+            if(response.headers.hasOwnProperty(key) && response.headers[key] !== undefined) {
+                headers[key] = response.headers[key];
             }
         }
-
         
-       res.writeHead(response.status , headers)
+        res.writeHead(response.status, headers);
         res.end(JSON.stringify(response.data));
     } catch (error) {
         console.error('Error forwarding request:', error);
